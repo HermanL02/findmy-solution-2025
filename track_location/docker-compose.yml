@@ -9,19 +9,19 @@ services:
     restart: unless-stopped
     ports:
       - "${PORT:-5000}:5000"
+    env_file:
+      - ../.env
     environment:
-      - MONGODB_URI=${MONGODB_URI}
-      - TRACKING_INTERVAL=${TRACKING_INTERVAL:-300}
       - HOST=0.0.0.0
       - PORT=5000
     volumes:
       # Mount session file to persist authentication
-      - ../icloud_session.pkl:/app/icloud_session.pkl:ro
+      - /home/herman/findmy/icloud_session.pkl:/app/icloud_session.pkl:ro
       # Mount .env file
-      - ../.env:/app/.env:ro
+      - /home/herman/findmy/.env:/app/.env:ro
       # Optional: mount other files if they change
-      - ../account.json:/app/account.json:ro
-      - ../ani_libs.bin:/app/ani_libs.bin:ro
+      - /home/herman/findmy/account.json:/app/account.json:ro
+      - /home/herman/findmy/ani_libs.bin:/app/ani_libs.bin:ro
     networks:
       - tracker-network
     healthcheck:
