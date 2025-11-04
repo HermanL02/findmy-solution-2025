@@ -1,0 +1,43 @@
+version: '3.8'
+
+services:
+  location-tracker:
+    build:
+      context: ..
+      dockerfile: track_location/Dockerfile
+    container_name: findmy-location-tracker
+    restart: unless-stopped
+    environment:
+      # MongoDB connection
+      - MONGODB_URI=${MONGODB_URI}
+
+      # Tracking interval in seconds (default: 300 = 5 minutes)
+      - TRACKING_INTERVAL=${TRACKING_INTERVAL:-300}
+
+      # Python unbuffered output for real-time logs
+      - PYTHONUNBUFFERED=1
+
+    volumes:
+      # Mount session file to avoid re-authentication
+      - ../icloud_session.pkl:/app/icloud_session.pkl:ro
+
+      # Optional: Mount .env file if not using environment variables
+      # - ../.env:/app/.env:ro
+
+    # Logging configuration
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+    # Health check (optional)
+    healthcheck:
+      test: ["CMD", "python", "-c", "import sys; sys.exit(0)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+    # Network mode (optional, use host for better connectivity)
+    # network_mode: host
