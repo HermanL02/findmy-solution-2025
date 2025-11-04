@@ -1,32 +1,33 @@
-# Use Python 3.11 slim image for smaller size
-FROM python:3.11-slim
+FROM python:3.12-slim
 
 # Set working directory
 WORKDIR /app
 
-# Install system dependencies
-RUN apt-get update && apt-get install -y \
-    curl \
-    && rm -rf /var/lib/apt/lists/*
+# Install poetry
+RUN pip install --no-cache-dir poetry
 
-# Install Poetry
-RUN curl -sSL https://install.python-poetry.org | python3 - && \
-    ln -s /root/.local/bin/poetry /usr/local/bin/poetry
+# Copy dependency files
+COPY ../pyproject.toml ../poetry.lock* ./
 
-# Copy project files
-COPY pyproject.toml poetry.lock* /app/
-
-# Install Python dependencies
+# Install dependencies
 RUN poetry config virtualenvs.create false && \
     poetry install --no-interaction --no-ansi --no-root
 
-# Copy application code
-COPY track_location/track_to_mongodb_docker.py /app/track_to_mongodb.py
-COPY icloud_session.pkl /app/
+# Copy necessary files from parent directory
+COPY ../.env* ./
+COPY ../icloud_session.pkl ./
+COPY ../account.json ./
+COPY ../ani_libs.bin ./
 
-# Environment variables (can be overridden by docker-compose or -e flag)
-ENV TRACKING_INTERVAL=300
-ENV PYTHONUNBUFFERED=1
+# Copy the application
+COPY app.py ./track_location/
 
-# Run the tracking script in continuous mode
-CMD ["python", "track_to_mongodb.py"]
+# Expose port
+EXPOSE 5000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD python -c "import requests; requests.get('http://localhost:5000/')" || exit 1
+
+# Run the application
+CMD ["python", "track_location/app.py"]

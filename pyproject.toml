@@ -11,7 +11,8 @@ dependencies = [
     "findmy (>=0.9.4,<0.10.0)",
     "pyicloud (>=2.1.0,<3.0.0)",
     "pymongo (>=4.15.3,<5.0.0)",
-    "python-dotenv (>=1.2.1,<2.0.0)"
+    "python-dotenv (>=1.2.1,<2.0.0)",
+    "flask (>=3.0.0,<4.0.0)"
 ]
 
 

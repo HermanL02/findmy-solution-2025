@@ -1,43 +1,41 @@
 version: '3.8'
 
 services:
-  location-tracker:
+  iphone-tracker:
     build:
       context: ..
       dockerfile: track_location/Dockerfile
-    container_name: findmy-location-tracker
+    container_name: iphone-location-tracker
     restart: unless-stopped
+    ports:
+      - "${PORT:-5000}:5000"
     environment:
-      # MongoDB connection
       - MONGODB_URI=${MONGODB_URI}
-
-      # Tracking interval in seconds (default: 300 = 5 minutes)
       - TRACKING_INTERVAL=${TRACKING_INTERVAL:-300}
-
-      # Python unbuffered output for real-time logs
-      - PYTHONUNBUFFERED=1
-
+      - HOST=0.0.0.0
+      - PORT=5000
     volumes:
-      # Mount session file to avoid re-authentication
+      # Mount session file to persist authentication
       - ../icloud_session.pkl:/app/icloud_session.pkl:ro
-
-      # Optional: Mount .env file if not using environment variables
-      # - ../.env:/app/.env:ro
-
-    # Logging configuration
+      # Mount .env file
+      - ../.env:/app/.env:ro
+      # Optional: mount other files if they change
+      - ../account.json:/app/account.json:ro
+      - ../ani_libs.bin:/app/ani_libs.bin:ro
+    networks:
+      - tracker-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
     logging:
       driver: "json-file"
       options:
         max-size: "10m"
         max-file: "3"
 
-    # Health check (optional)
-    healthcheck:
-      test: ["CMD", "python", "-c", "import sys; sys.exit(0)"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 10s
-
-    # Network mode (optional, use host for better connectivity)
-    # network_mode: host
+networks:
+  tracker-network:
+    driver: bridge

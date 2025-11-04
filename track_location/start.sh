@@ -1,33 +1,32 @@
 #!/bin/bash
-# Start the location tracker in Docker
+# Quick start script for iPhone Location Tracker
 
-echo "🚀 Starting FindMy Location Tracker..."
+echo "=========================================="
+echo "iPhone Location Tracker API"
+echo "=========================================="
 echo ""
 
-# Check if .env file exists
-if [ ! -f "../.env" ]; then
+# Check if .env exists in parent directory
+if [ ! -f ../.env ]; then
     echo "❌ Error: .env file not found in parent directory"
-    echo "Please create ../.env with MONGODB_URI"
+    echo "Please copy .env.example to .env and configure it:"
+    echo "  cp .env.example .env"
+    echo ""
     exit 1
 fi
 
-# Check if icloud_session.pkl exists
-if [ ! -f "../icloud_session.pkl" ]; then
-    echo "❌ Error: icloud_session.pkl not found"
-    echo "Please authenticate first:"
-    echo "  poetry run python setup/icloud_auth.py"
+# Check if icloud_session.pkl exists in parent directory
+if [ ! -f ../icloud_session.pkl ]; then
+    echo "❌ Error: icloud_session.pkl not found in parent directory"
+    echo "Please authenticate with iCloud first:"
+    echo "  cd .. && poetry run python setup/icloud_auth.py"
+    echo ""
     exit 1
 fi
 
-# Build and start the container
-echo "🔨 Building Docker image..."
-docker-compose up --build -d
+echo "✓ Configuration files found"
+echo "Starting application..."
+echo ""
 
-echo ""
-echo "✅ Location tracker started!"
-echo ""
-echo "Commands:"
-echo "  View logs:    ./logs.sh"
-echo "  Stop tracker: ./stop.sh"
-echo "  Restart:      ./restart.sh"
-echo ""
+# Run the app from parent directory
+cd .. && poetry run python track_location/app.py

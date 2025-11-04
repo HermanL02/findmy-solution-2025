@@ -1,67 +1,86 @@
-# Track Location to MongoDB | 追踪位置到 MongoDB
+# iPhone Location Tracker API
 
-[English](#english) | [中文](#中文)
+A single-file Flask application that continuously tracks your iPhone 16 Pro location to MongoDB and provides API endpoints to trigger the phone alarm.
 
----
+## Features
 
-## English
+- 🔄 **Continuous Location Tracking**: Automatically tracks your iPhone location in the background
+- 💾 **MongoDB Storage**: Stores location history with timestamps
+- 📍 **Location API**: REST API to query latest location
+- 🚨 **Alarm Trigger**: API endpoint to make your phone ring (Find My feature)
+- 🔋 **Battery Monitoring**: Track battery level along with location
+- 📱 **Single File**: Everything in one file (`app.py`)
+- 🐳 **Docker Support**: Easy deployment with Docker Compose
 
-Continuously track your Apple device locations and store them in MongoDB for historical analysis.
+## Prerequisites
 
-### Features
+1. **For Direct Run**: Python 3.10-3.13 + Poetry
+2. **For Docker Run**: Docker + Docker Compose
+3. MongoDB database (local or MongoDB Atlas)
+4. iCloud account with 2FA already authenticated (run setup first)
 
-- ✅ Automatic location tracking at configurable intervals
-- ✅ Store location history in MongoDB
-- ✅ Track multiple devices simultaneously
-- ✅ GeoJSON format for easy mapping
-- ✅ Battery level monitoring
-- ✅ Single update or continuous tracking modes
+## Setup
 
-### Setup
+### Option A: Docker (Recommended for 24/7 operation)
 
-#### 1. Configure MongoDB URI
+#### 1. Configure Environment Variables
 
-Create or edit `.env` file in the root directory:
+Copy `.env.example` to `.env` in the root directory:
 
 ```bash
-MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/?appName=YourApp
+cd ..  # Go to root directory
+cp .env.example .env
 ```
 
-#### 2. Ensure iCloud Authentication
+**Generate a secure API key:**
+```bash
+python -c 'import secrets; print(secrets.token_urlsafe(32))'
+```
 
-Make sure you've authenticated first:
+Edit `.env`:
+```
+MONGODB_URI=mongodb+srv://your-connection-string
+API_KEY=your_generated_secure_api_key_here  # REQUIRED!
+TRACKING_INTERVAL=300  # 5 minutes
+PORT=5000
+```
+
+⚠️ **Important:** The API_KEY protects your endpoints from unauthorized access. Without it, anyone can trigger your alarm!
+
+#### 2. Authenticate with iCloud
+
+Run the setup script (requires Poetry temporarily):
 
 ```bash
+poetry install  # One-time setup
 poetry run python setup/icloud_auth.py
 ```
 
-### Usage
+This creates `icloud_session.pkl` that Docker will use.
 
-#### Option 1: Docker (Recommended for 24/7 tracking)
-
-**Quick Start:**
+#### 3. Start with Docker
 
 ```bash
 cd track_location
 
-# Start the tracker (runs infinitely in background)
-./start.sh
+# Start the container (builds automatically)
+./docker-start.sh
 
 # View logs
-./logs.sh
+./docker-logs.sh
 
-# Stop the tracker
-./stop.sh
+# Stop the container
+./docker-stop.sh
 
-# Restart the tracker
-./restart.sh
+# Restart the container
+./docker-restart.sh
 ```
 
-**Docker Commands:**
+**Direct Docker Commands:**
 
 ```bash
-# Start with custom interval (in seconds)
-TRACKING_INTERVAL=600 docker-compose up -d  # 10 minutes
+# Start
+docker-compose up --build -d
 
 # View logs
 docker-compose logs -f
@@ -69,273 +88,336 @@ docker-compose logs -f
 # Stop
 docker-compose down
 
-# Rebuild and start
-docker-compose up --build -d
+# Restart
+docker-compose restart
 ```
 
 The Docker container will:
 - ✅ Run continuously in the background
 - ✅ Restart automatically if it crashes
-- ✅ Track locations at your specified interval (default: 5 minutes)
-- ✅ Store all data in MongoDB
-
-#### Option 2: Direct Python (For testing or one-time runs)
-
-Run the tracking script:
-
-```bash
-poetry run python track_location/track_to_mongodb.py
-```
-
-You'll see three tracking modes:
-
-1. **Track once and exit** - Single location update
-2. **Continuous tracking (5 minutes)** - Updates every 5 minutes
-3. **Custom interval** - Specify your own interval in seconds
-
-### Data Structure
-
-Each location record in MongoDB contains:
-
-```json
-{
-  "device_id": "unique_device_id",
-  "name": "Herman's iPhone 16 Pro",
-  "model": "iPhone 16 Pro",
-  "device_class": "iPhone",
-  "battery_level": 0.21,
-  "battery_status": "Charging",
-  "location": {
-    "type": "Point",
-    "coordinates": [longitude, latitude]
-  },
-  "location_data": {
-    "latitude": 37.7749,
-    "longitude": -122.4194,
-    "accuracy": 65,
-    "position_type": "GPS",
-    "is_old": false,
-    "location_timestamp": 1699000000000
-  },
-  "timestamp": "2024-11-03T12:00:00.000Z"
-}
-```
-
-### MongoDB Database Structure
-
-- **Database**: `findmy`
-- **Collection**: `device_locations`
-
-### Querying Location History
-
-Example MongoDB queries:
-
-```javascript
-// Get all locations for a specific device
-db.device_locations.find({ "name": "Herman's iPhone 16 Pro" })
-
-// Get locations within last 24 hours
-db.device_locations.find({
-  "timestamp": {
-    $gte: ISODate("2024-11-02T00:00:00Z")
-  }
-})
-
-// Get locations near a specific point (requires geo index)
-db.device_locations.createIndex({ "location": "2dsphere" })
-db.device_locations.find({
-  "location": {
-    $near: {
-      $geometry: {
-        type: "Point",
-        coordinates: [-122.4194, 37.7749]
-      },
-      $maxDistance: 1000  // meters
-    }
-  }
-})
-```
-
-### Stopping Continuous Tracking
-
-Press `Ctrl+C` to stop the tracking loop.
+- ✅ Track locations at specified interval
+- ✅ Expose API on port 5000
 
 ---
 
-## 中文
+### Option B: Direct Python Run
 
-持续追踪您的 Apple 设备位置并将其存储到 MongoDB 以进行历史分析。
-
-### 功能特点
-
-- ✅ 可配置间隔的自动位置追踪
-- ✅ 在 MongoDB 中存储位置历史
-- ✅ 同时追踪多个设备
-- ✅ GeoJSON 格式便于地图展示
-- ✅ 电量监控
-- ✅ 单次更新或连续追踪模式
-
-### 设置
-
-#### 1. 配置 MongoDB URI
-
-在根目录创建或编辑 `.env` 文件：
+#### 1. Install Dependencies
 
 ```bash
-MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/?appName=YourApp
+cd ..  # Go to root directory
+poetry install
 ```
 
-#### 2. 确保 iCloud 已认证
+#### 2. Configure Environment Variables
 
-确保您已先完成认证：
+```bash
+cp .env.example .env
+```
+
+Edit `.env` as shown above.
+
+#### 3. Authenticate with iCloud
 
 ```bash
 poetry run python setup/icloud_auth.py
 ```
 
-### 使用方法
-
-#### 方式 1：Docker（推荐用于 24/7 追踪）
-
-**快速开始：**
+#### 4. Run the Application
 
 ```bash
 cd track_location
-
-# 启动追踪器（在后台无限运行）
 ./start.sh
-
-# 查看日志
-./logs.sh
-
-# 停止追踪器
-./stop.sh
-
-# 重启追踪器
-./restart.sh
 ```
 
-**Docker 命令：**
+Or from root directory:
 
 ```bash
-# 使用自定义间隔启动（秒）
-TRACKING_INTERVAL=600 docker-compose up -d  # 10分钟
-
-# 查看日志
-docker-compose logs -f
-
-# 停止
-docker-compose down
-
-# 重新构建并启动
-docker-compose up --build -d
+poetry run python track_location/app.py
 ```
 
-Docker 容器将：
-- ✅ 在后台持续运行
-- ✅ 崩溃时自动重启
-- ✅ 按指定间隔追踪位置（默认：5分钟）
-- ✅ 将所有数据存储在 MongoDB
+## API Endpoints
 
-#### 方式 2：直接运行 Python（用于测试或一次性运行）
+### Health Check
+```bash
+GET /
+```
 
-运行追踪脚本：
+Returns server status and tracking information. **No authentication required.**
+
+**Response:**
+```json
+{
+  "status": "running",
+  "service": "iPhone Location Tracker",
+  "tracking_active": true,
+  "device": "Herman's iPhone"
+}
+```
+
+### Get Latest Location
+```bash
+GET /location
+```
+
+Returns the most recent location data from MongoDB. **Requires API key.**
+
+**Authentication:** Provide API key via header or query parameter
+
+**Response:**
+```json
+{
+  "device_id": "...",
+  "name": "Herman's Huawei P90",
+  "model": "iPhone 16 Pro",
+  "battery_level": 0.21,
+  "timestamp": "2025-11-04T12:00:00",
+  "location_data": {
+    "latitude": 37.7749,
+    "longitude": -122.4194,
+    "accuracy": 10,
+    "position_type": "GPS"
+  }
+}
+```
+
+### Get Device Status
+```bash
+GET /status
+```
+
+Returns current device status (battery, etc.). **Requires API key.**
+
+**Response:**
+```json
+{
+  "device_id": "...",
+  "name": "Herman's Huawei P90",
+  "model": "iPhone 16 Pro",
+  "battery_level": 0.21,
+  "device_status": "200",
+  "location_enabled": true,
+  "timestamp": "2025-11-04T12:00:00"
+}
+```
+
+### Trigger Alarm
+```bash
+POST /alarm
+```
+
+Makes your iPhone play a sound (Find My feature). **Requires API key.**
+
+**Response:**
+```json
+{
+  "status": "success",
+  "message": "Alarm triggered on Herman's iPhone",
+  "timestamp": "2025-11-04T12:00:00"
+}
+```
+
+---
+
+## 🔐 Authentication
+
+All sensitive endpoints (`/location`, `/status`, `/alarm`) require API key authentication.
+
+### Method 1: Using Header (Recommended)
+```bash
+curl -H "X-API-Key: your_api_key_here" http://localhost:5000/location
+```
+
+### Method 2: Using Query Parameter
+```bash
+curl "http://localhost:5000/location?api_key=your_api_key_here"
+```
+
+### Error Responses
+
+**Missing API Key (401):**
+```json
+{
+  "error": "Missing API key",
+  "message": "Provide API key via X-API-Key header or ?api_key= parameter"
+}
+```
+
+**Invalid API Key (403):**
+```json
+{
+  "error": "Invalid API key",
+  "message": "The provided API key is incorrect"
+}
+```
+
+---
+
+## Usage Examples
+
+### Using cURL
 
 ```bash
-poetry run python track_location/track_to_mongodb.py
+# Check if server is running (no auth needed)
+curl http://localhost:5000/
+
+# Get latest location (with API key in header)
+curl -H "X-API-Key: YOUR_API_KEY" http://localhost:5000/location
+
+# Get latest location (with API key in query)
+curl "http://localhost:5000/location?api_key=YOUR_API_KEY"
+
+# Get device status (with API key)
+curl -H "X-API-Key: YOUR_API_KEY" http://localhost:5000/status
+
+# Trigger alarm (with API key)
+curl -X POST -H "X-API-Key: YOUR_API_KEY" http://localhost:5000/alarm
 ```
 
-您将看到三种追踪模式：
+### Using Python
 
-1. **追踪一次并退出** - 单次位置更新
-2. **连续追踪（5分钟）** - 每5分钟更新一次
-3. **自定义间隔** - 指定您自己的间隔时间（秒）
+```python
+import requests
 
-### 数据结构
+BASE_URL = "http://localhost:5000"
+API_KEY = "your_api_key_here"
+HEADERS = {"X-API-Key": API_KEY}
 
-MongoDB 中的每条位置记录包含：
+# Get latest location
+response = requests.get(f"{BASE_URL}/location", headers=HEADERS)
+location = response.json()
+print(f"Lat: {location['location_data']['latitude']}")
+print(f"Lon: {location['location_data']['longitude']}")
+
+# Trigger alarm
+response = requests.post(f"{BASE_URL}/alarm", headers=HEADERS)
+print(response.json())
+```
+
+### Using JavaScript/Fetch
+
+```javascript
+const API_KEY = 'your_api_key_here';
+const headers = { 'X-API-Key': API_KEY };
+
+// Get latest location
+fetch('http://localhost:5000/location', { headers })
+  .then(res => res.json())
+  .then(data => console.log(data));
+
+// Trigger alarm
+fetch('http://localhost:5000/alarm', {
+  method: 'POST',
+  headers
+})
+  .then(res => res.json())
+  .then(data => console.log(data));
+```
+
+## How It Works
+
+1. **Initialization**:
+   - Connects to MongoDB
+   - Loads iCloud session from `icloud_session.pkl`
+   - Finds your iPhone 16 Pro device
+
+2. **Background Tracking**:
+   - Starts a background thread that runs continuously
+   - Every 5 minutes (configurable), it fetches device location
+   - Saves location, battery level, and timestamp to MongoDB
+
+3. **API Server**:
+   - Flask server runs on port 5000
+   - Provides REST API endpoints for location queries and alarm
+   - Runs concurrently with the background tracking thread
+
+## MongoDB Schema
+
+Each location record stored in MongoDB has this structure:
 
 ```json
 {
-  "device_id": "unique_device_id",
-  "name": "Herman 的 iPhone 16 Pro",
+  "_id": "ObjectId(...)",
+  "device_id": "unique-device-id",
+  "name": "Herman's Huawei P90",
   "model": "iPhone 16 Pro",
   "device_class": "iPhone",
   "battery_level": 0.21,
-  "battery_status": "充电中",
+  "battery_status": null,
+  "timestamp": "2025-11-04T12:00:00",
   "location": {
     "type": "Point",
-    "coordinates": [经度, 纬度]
+    "coordinates": [-122.4194, 37.7749]
   },
   "location_data": {
     "latitude": 37.7749,
     "longitude": -122.4194,
-    "accuracy": 65,
+    "accuracy": 10,
     "position_type": "GPS",
     "is_old": false,
-    "location_timestamp": 1699000000000
-  },
-  "timestamp": "2024-11-03T12:00:00.000Z"
+    "location_timestamp": 1699123200000
+  }
 }
 ```
 
-### MongoDB 数据库结构
+## Deployment
 
-- **数据库**: `findmy`
-- **集合**: `device_locations`
+### Running as a Service (systemd)
 
-### 查询位置历史
+Create `/etc/systemd/system/iphone-tracker.service`:
 
-MongoDB 查询示例：
+```ini
+[Unit]
+Description=iPhone Location Tracker API
+After=network.target
 
-```javascript
-// 获取特定设备的所有位置
-db.device_locations.find({ "name": "Herman 的 iPhone 16 Pro" })
+[Service]
+Type=simple
+User=your-user
+WorkingDirectory=/path/to/findmy
+Environment="PATH=/path/to/.local/bin:/usr/bin"
+ExecStart=/path/to/.local/bin/poetry run python track_location/app.py
+Restart=always
 
-// 获取最近24小时内的位置
-db.device_locations.find({
-  "timestamp": {
-    $gte: ISODate("2024-11-02T00:00:00Z")
-  }
-})
-
-// 获取特定点附近的位置（需要创建地理索引）
-db.device_locations.createIndex({ "location": "2dsphere" })
-db.device_locations.find({
-  "location": {
-    $near: {
-      $geometry: {
-        type: "Point",
-        coordinates: [-122.4194, 37.7749]
-      },
-      $maxDistance: 1000  // 米
-    }
-  }
-})
+[Install]
+WantedBy=multi-user.target
 ```
 
-### 停止连续追踪
+Enable and start:
+```bash
+sudo systemctl enable iphone-tracker
+sudo systemctl start iphone-tracker
+```
 
-按 `Ctrl+C` 停止追踪循环。
+### Docker
 
----
+The app can be containerized. Make sure to mount your session files.
 
-## Use Cases | 使用场景
+## Troubleshooting
 
-### English
-- **Travel tracking** - Record your device movements during trips
-- **Device monitoring** - Keep track of family member devices
-- **Lost device recovery** - Historical location data for finding lost devices
-- **Location analytics** - Analyze patterns in device movement
+### Session Expired
+If you get "Session expired", re-authenticate:
+```bash
+poetry run python setup/icloud_auth.py
+```
 
-### 中文
-- **旅行追踪** - 记录旅行期间的设备移动
-- **设备监控** - 追踪家庭成员的设备
-- **丢失设备恢复** - 历史位置数据帮助找回丢失的设备
-- **位置分析** - 分析设备移动模式
+### Device Not Found
+Make sure your device model name is exactly "iPhone 16 Pro" in iCloud. Check with:
+```bash
+poetry run python list_devices/track_devices.py
+```
 
-## Requirements | 要求
+### MongoDB Connection Issues
+Verify your `MONGODB_URI` is correct and your IP is whitelisted in MongoDB Atlas.
 
-- Authenticated iCloud session | 已认证的 iCloud 会话
-- MongoDB connection (Atlas or local) | MongoDB 连接（Atlas 或本地）
-- `.env` file with MONGODB_URI | 包含 MONGODB_URI 的 .env 文件
+## Security Notes
+
+- Keep your `.env` file secure (it contains MongoDB credentials)
+- Keep `icloud_session.pkl` secure (it contains iCloud session)
+- Consider using HTTPS if exposing the API publicly
+- Add authentication/API keys for production use
+- The `.gitignore` already excludes sensitive files
+
+## License
+
+See main project LICENSE file.

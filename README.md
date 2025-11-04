@@ -31,9 +31,10 @@ findmy/
 │   ├── track_devices.py      # Advanced: FindMy.py tracker
 │   └── README.md             # Usage instructions
 │
-├── track_location/           # 🆕 Location tracking with MongoDB
-│   ├── track_to_mongodb.py   # Continuous location tracking
-│   └── README.md             # Tracking instructions
+├── track_location/           # 🆕 Location tracking API with MongoDB
+│   ├── app.py                # Flask API for tracking + alarm
+│   ├── start.sh              # Quick start script
+│   └── README.md             # API documentation
 │
 ├── .env                      # Environment variables (MongoDB URI)
 ├── pyproject.toml            # Dependencies
@@ -71,24 +72,26 @@ You'll see:
 - Battery levels and status
 - Interactive options to export data or play sounds
 
-#### 4. Track Location History to MongoDB (Optional)
+#### 4. Start Location Tracking API (Optional)
 
-Set up continuous location tracking:
+Set up continuous location tracking with REST API:
 
 1. Create `.env` file with MongoDB URI:
 ```bash
 MONGODB_URI=your_mongodb_connection_string
 ```
 
-2. Run the tracking script:
+2. Run the Flask API server:
 ```bash
-poetry run python track_location/track_to_mongodb.py
+cd track_location
+./start.sh
 ```
 
-Choose from:
-- Single update
-- Continuous tracking (5 min intervals)
-- Custom interval tracking
+Features:
+- Continuous background location tracking to MongoDB
+- REST API endpoints for location queries
+- API endpoint to trigger phone alarm
+- See `track_location/README.md` for full API documentation
 
 ### 📊 What You Can Track
 
